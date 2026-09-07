@@ -243,9 +243,7 @@ def setup_chromadb():
     """Populate ChromaDB with schema descriptions if not already done."""
     from schema_descriptions import schema_descriptions
 
-    embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name="all-MiniLM-L6-v2"
-    )
+    embedding_function = embedding_functions.DefaultEmbeddingFunction()
     client = chromadb.PersistentClient(path="./chroma_db")
     collection = client.get_or_create_collection(
         name="schema_store",

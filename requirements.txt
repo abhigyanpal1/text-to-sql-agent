@@ -1,6 +1,5 @@
 anthropic
 chromadb
-sentence-transformers
 sqlalchemy
 python-dotenv
 pandas

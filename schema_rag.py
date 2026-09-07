@@ -23,8 +23,7 @@ load_dotenv()
 # this model converts text into vectors without needing any API key
 """all-MiniLM-L6-v2 is the actual name of a pre-trained model that lives on HuggingFace (a platform that hosts open-source AI models, similar to how GitHub hosts code). This specific model is popular because it's small (fast, lightweight) but still produces good quality embeddings — a good tradeoff for a learning project like this.
 When you run your code for the first time, it will automatically download this model (a few hundred MB) from HuggingFace onto your machine. After that first download, it runs completely locally — no internet needed, no API key, no cost."""
-embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(model_name = "all-MiniLM-L6-v2")
-
+embedding_function = embedding_functions.DefaultEmbeddingFunction()
 #  creates a ChromaDB client that stores data in a local folder called 'chroma_db'
 client = chromadb.PersistentClient(path = "./chroma_db")
 
