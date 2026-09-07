@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Agent — Ask Your Database</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #070B14;
+  --surface:  #0F1623;
+  --border:   #1A2235;
+  --border2:  #243044;
+  --blue:     #38BDF8;
+  --blue-dim: #0EA5E9;
+  --blue-bg:  rgba(56,189,248,0.07);
+  --green:    #22C55E;
+  --green-bg: rgba(34,197,94,0.07);
+  --red:      #EF4444;
+  --red-bg:   rgba(239,68,68,0.07);
+  --amber:    #F59E0B;
+  --text:     #CBD5E1;
+  --text-dim: #64748B;
+  --text-muted:#334155;
+  --mono:     'JetBrains Mono', monospace;
+  --sans:     'Inter', sans-serif;
+}
+html { font-size: 14px; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── layout ── */
+.page { max-width: 860px; margin: 0 auto; padding: 0 24px 80px; }
+
+/* ── hero ── */
+.hero {
+  text-align: center;
+  padding: 64px 0 40px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--blue-bg);
+  border: 1px solid rgba(56,189,248,0.2);
+  color: var(--blue);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 20px;
+  margin-bottom: 24px;
+}
+.badge-dot {
+  width: 5px; height: 5px;
+  background: var(--blue);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+h1 {
+  font-size: clamp(36px, 6vw, 56px);
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, #F0F9FF 0%, #BAE6FD 40%, #38BDF8 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub {
+  color: var(--text-dim);
+  font-size: 15px;
+  font-weight: 400;
+  margin-bottom: 36px;
+}
+
+/* ── pipeline ── */
+.pipeline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+.pipe-node {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  transition: all 0.3s;
+}
+.pipe-node.lit {
+  border-color: var(--blue);
+  color: var(--blue);
+  box-shadow: 0 0 12px rgba(56,189,248,0.15);
+}
+.pipe-node .nd {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--border2);
+  transition: background 0.3s;
+}
+.pipe-node.lit .nd { background: var(--blue); }
+.pipe-arr { color: var(--border2); padding: 0 6px; font-size: 14px; }
+
+/* ── input card ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: border-color 0.2s;
+}
+.card:focus-within { border-color: var(--border2); }
+.card-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.input-row { display: flex; gap: 10px; margin-bottom: 16px; }
+input[type="text"] {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  padding: 13px 18px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="text"]:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(56,189,248,0.1);
+}
+input[type="text"]::placeholder { color: var(--text-muted); }
+
+button.run-btn {
+  background: linear-gradient(135deg, #0369A1, #0284C7);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 13px 26px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+button.run-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0284C7, #0EA5E9);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(3,105,161,0.35);
+}
+button.run-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ── chips ── */
+.chip-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 13px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+.chip:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--blue-bg);
+}
+
+/* ── status ── */
+.status-bar {
+  text-align: center;
+  padding: 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  display: none;
+}
+.status-bar.active { display: block; }
+.status-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.spinner {
+  width: 12px; height: 12px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── results section ── */
+#results { display: none; }
+#results.show { display: block; }
+
+/* ── sql box ── */
+.sql-box {
+  background: #050810;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.sql-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--blue), transparent);
+}
+.box-label {
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-family: var(--sans);
+  margin-bottom: 10px;
+}
+.sql-text {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--blue);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.copy-btn {
+  position: absolute;
+  top: 14px; right: 14px;
+  background: var(--border);
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.copy-btn:hover { background: var(--border2); color: var(--text); }
+
+/* ── correction notice ── */
+.correction-box {
+  background: var(--green-bg);
+  border: 1px solid rgba(34,197,94,0.2);
+  border-left: 3px solid var(--green);
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #86EFAC;
+  display: none;
+}
+.correction-box.show { display: block; }
+
+/* ── error box ── */
+.error-box {
+  background: var(--red-bg);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-left: 3px solid var(--red);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #FCA5A5;
+  display: none;
+}
+.error-box.show { display: block; }
+
+/* ── stats ── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+}
+.stat-val {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--blue);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-lbl {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── table ── */
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.table-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.record-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--blue);
+  background: var(--blue-bg);
+  border: 1px solid rgba(56,189,248,0.2);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.table-scroll { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+thead th {
+  background: var(--bg);
+  color: var(--text-muted);
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody td {
+  padding: 10px 16px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ── empty state ── */
+.empty {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-muted);
+  font-size: 13px;
+  display: none;
+}
+.empty.show { display: block; }
+.empty-icon { font-size: 28px; margin-bottom: 10px; }
+
+/* ── history ── */
+.section-sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 36px 0;
+}
+.history-grid { display: flex; flex-direction: column; gap: 8px; }
+.history-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.history-item:hover { border-color: var(--border2); background: rgba(255,255,255,0.02); }
+.history-q { font-size: 13px; color: #94A3B8; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-meta { font-family: var(--mono); font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.history-corrected { color: var(--green); }
+
+/* ── footer ── */
+.footer {
+  text-align: center;
+  padding: 40px 0 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--border2);
+  letter-spacing: 1px;
+}
+
+/* ── typewriter ── */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.cursor::after {
+  content: '|';
+  animation: blink 1s infinite;
+  color: var(--blue);
+}
+
+/* ── responsive ── */
+@media (max-width: 600px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .pipeline { gap: 4px; }
+  .pipe-arr { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- hero -->
+  <div class="hero">
+    <div class="badge"><span class="badge-dot"></span>RAG · LLM · Self-Correction</div>
+    <h1>Ask Your Database</h1>
+    <p class="hero-sub">Natural language → SQL → Results &nbsp;·&nbsp; Powered by Claude + ChromaDB</p>
+
+    <!-- pipeline -->
+    <div class="pipeline" id="pipeline">
+      <div class="pipe-node lit" data-step="rag"><span class="nd"></span>RAG</div>
+      <div class="pipe-arr">→</div>
+      <div class="pipe-node" data-step="sql"><span class="nd"></span>SQL Gen</div>
+      <div class="pipe-arr">→</div>
+      <div class="pipe-node" data-step="exec"><span class="nd"></span>Execute</div>
+      <div class="pipe-arr">→</div>
+      <div class="pipe-node" data-step="fix"><span class="nd"></span>Self-Correct</div>
+      <div class="pipe-arr">→</div>
+      <div class="pipe-node" data-step="done"><span class="nd"></span>Results</div>
+    </div>
+  </div>
+
+  <!-- input -->
+  <div class="card">
+    <div class="card-label">Ask a question</div>
+    <div class="input-row">
+      <input type="text" id="question" placeholder="e.g. Show me all orders that haven't been delivered yet…" autocomplete="off">
+      <button class="run-btn" id="runBtn" onclick="runQuery()">Run ⚡</button>
+    </div>
+    <div class="chip-label">Try an example</div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <!-- status -->
+  <div class="status-bar" id="statusBar">
+    <span class="status-step"><span class="spinner"></span> <span id="statusText">thinking…</span></span>
+  </div>
+
+  <!-- results -->
+  <div id="results">
+    <div class="sql-box" id="sqlBox">
+      <div class="box-label">Generated SQL</div>
+      <button class="copy-btn" onclick="copySQL()">copy</button>
+      <div class="sql-text" id="sqlText"></div>
+    </div>
+
+    <div class="correction-box" id="correctionBox">
+      <span style="color:var(--green);font-size:10px;letter-spacing:2px;text-transform:uppercase;">✓ Self-Corrected</span><br>
+      <span id="correctionMsg"></span>
+    </div>
+
+    <div class="error-box" id="errorBox">
+      <span style="color:var(--red);font-size:10px;letter-spacing:2px;text-transform:uppercase;">✗ Query Failed</span><br>
+      <span id="errorMsg"></span>
+    </div>
+
+    <div class="stats" id="statsRow">
+      <div class="stat"><div class="stat-val" id="statRows">—</div><div class="stat-lbl">Rows</div></div>
+      <div class="stat"><div class="stat-val" id="statCols">—</div><div class="stat-lbl">Columns</div></div>
+      <div class="stat"><div class="stat-val" id="statTables">—</div><div class="stat-lbl">Tables Used</div></div>
+      <div class="stat"><div class="stat-val" id="statFixed">—</div><div class="stat-lbl">Self-Fixed</div></div>
+    </div>
+
+    <div class="table-wrap" id="tableWrap">
+      <div class="table-head">
+        <span class="table-title">Query Results</span>
+        <span class="record-badge" id="recordBadge">0 records</span>
+      </div>
+      <div class="table-scroll">
+        <table id="dataTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="empty" id="emptyState">
+      <div class="empty-icon">∅</div>
+      Query ran successfully — no matching records found.
+    </div>
+  </div>
+
+  <!-- history -->
+  <div id="historySection" style="display:none">
+    <hr class="section-sep">
+    <div class="card-label" style="margin-bottom:12px;">Recent Queries</div>
+    <div class="history-grid" id="historyGrid"></div>
+  </div>
+
+  <!-- footer -->
+  <div class="footer">
+    TEXT-TO-SQL AGENT &nbsp;·&nbsp; RAG + LLM + SELF-CORRECTION &nbsp;·&nbsp; CLAUDE + CHROMADB + SQLITE
+  </div>
+
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+const history = [];
+
+const examples = [
+  "Show all pending orders",
+  "Which products have a rating above 4?",
+  "Top 3 customers by number of orders",
+  "Show all failed payments",
+  "Products with less than 40 items in stock",
+  "Which orders have been returned?",
+];
+
+// render chips
+const chipsEl = document.getElementById('chips');
+examples.forEach(ex => {
+  const chip = document.createElement('span');
+  chip.className = 'chip';
+  chip.textContent = ex;
+  chip.onclick = () => {
+    document.getElementById('question').value = ex;
+    runQuery();
+  };
+  chipsEl.appendChild(chip);
+});
+
+// pipeline steps
+const steps = ['rag','sql','exec','fix','done'];
+function setStep(active) {
+  steps.forEach((s, i) => {
+    const el = document.querySelector(`[data-step="${s}"]`);
+    el.classList.toggle('lit', i <= steps.indexOf(active));
+  });
+}
+
+function setStatus(text, step) {
+  document.getElementById('statusBar').classList.add('active');
+  document.getElementById('statusText').textContent = text;
+  if (step) setStep(step);
+}
+
+function hideStatus() {
+  document.getElementById('statusBar').classList.remove('active');
+}
+
+function showResults() {
+  document.getElementById('results').classList.add('show');
+}
+
+function hideAll() {
+  document.getElementById('correctionBox').classList.remove('show');
+  document.getElementById('errorBox').classList.remove('show');
+  document.getElementById('emptyState').classList.remove('show');
+  document.getElementById('tableWrap').style.display = 'none';
+  document.getElementById('statsRow').style.display = 'none';
+}
+
+async function runQuery() {
+  const q = document.getElementById('question').value.trim();
+  if (!q) return;
+
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  hideAll();
+  showResults();
+
+  // reset pipeline
+  setStep('rag');
+
+  // step through pipeline visually
+  setStatus('[ RAG ] retrieving relevant schema…', 'rag');
+  await sleep(500);
+  setStatus('[ LLM ] generating SQL query…', 'sql');
+  await sleep(400);
+  setStatus('[ DB ] executing query…', 'exec');
+
+  try {
+    const res = await fetch(`${API}/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q })
+    });
+    const data = await res.json();
+
+    if (data.corrected) {
+      setStatus('[ SELF-CORRECT ] fixing query…', 'fix');
+      await sleep(400);
+    }
+
+    setStep('done');
+    hideStatus();
+
+    // show SQL
+    typeSQL(data.sql || '');
+
+    if (data.success) {
+      // correction notice
+      if (data.corrected) {
+        document.getElementById('correctionBox').classList.add('show');
+        document.getElementById('correctionMsg').textContent =
+          `Query automatically fixed on attempt ${data.correction_attempts}.`;
+      }
+
+      const rows = data.rows || [];
+      const cols = data.columns || [];
+
+      // stats
+      document.getElementById('statRows').textContent = rows.length;
+      document.getElementById('statCols').textContent = cols.length;
+      document.getElementById('statTables').textContent = (data.tables_used || []).length;
+      document.getElementById('statFixed').textContent = data.corrected ? '✓' : '—';
+      document.getElementById('statsRow').style.display = 'grid';
+
+      if (rows.length > 0) {
+        // build table
+        buildTable(cols, rows);
+        document.getElementById('recordBadge').textContent = `${rows.length} records`;
+        document.getElementById('tableWrap').style.display = 'block';
+      } else {
+        document.getElementById('emptyState').classList.add('show');
+      }
+
+      // add to history
+      addHistory(q, rows.length, data.corrected);
+
+    } else {
+      document.getElementById('errorBox').classList.add('show');
+      document.getElementById('errorMsg').textContent = data.error || 'Unknown error';
+    }
+
+  } catch (err) {
+    hideStatus();
+    document.getElementById('errorBox').classList.add('show');
+    document.getElementById('errorMsg').textContent =
+      'Could not connect to backend. Make sure server.py is running on port 8000.';
+  }
+
+  btn.disabled = false;
+}
+
+function buildTable(cols, rows) {
+  const head = document.getElementById('tableHead');
+  const body = document.getElementById('tableBody');
+
+  head.innerHTML = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  body.innerHTML = rows.map(row =>
+    '<tr>' + row.map(cell => `<td>${cell === null ? '<span style="color:var(--text-muted)">null</span>' : cell}</td>`).join('') + '</tr>'
+  ).join('');
+}
+
+function typeSQL(sql) {
+  const el = document.getElementById('sqlText');
+  el.textContent = '';
+  el.classList.add('cursor');
+  let i = 0;
+  const interval = setInterval(() => {
+    el.textContent += sql[i];
+    i++;
+    if (i >= sql.length) {
+      clearInterval(interval);
+      el.classList.remove('cursor');
+    }
+  }, 18);
+}
+
+function copySQL() {
+  const sql = document.getElementById('sqlText').textContent;
+  navigator.clipboard.writeText(sql).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 1500);
+  });
+}
+
+function addHistory(q, rows, corrected) {
+  history.unshift({ q, rows, corrected });
+  const section = document.getElementById('historySection');
+  const grid = document.getElementById('historyGrid');
+  section.style.display = 'block';
+
+  grid.innerHTML = history.slice(0, 6).map(item => `
+    <div class="history-item" onclick="document.getElementById('question').value='${item.q.replace(/'/g,"\\'")}'; runQuery();">
+      <span class="history-q">${item.q}</span>
+      <span class="history-meta ${item.corrected ? 'history-corrected' : ''}">${item.rows} rows${item.corrected ? ' · ✓ fixed' : ''}</span>
+    </div>
+  `).join('');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// enter key
+document.getElementById('question').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runQuery();
+});
+</script>
+</body>
+</html>

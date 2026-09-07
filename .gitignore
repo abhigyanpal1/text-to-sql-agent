@@ -1,0 +1,7 @@
+.env
+ecommerce.db
+chroma_db/
+venv/
+__pycache__/
+*.pyc
+hf-space/
